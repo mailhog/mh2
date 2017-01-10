@@ -5,15 +5,11 @@ import (
 
 	"github.com/ian-kent/gofigure"
 	"github.com/ian-kent/service.go/log"
-	bk "github.com/mailhog/mh2/backend"
 	"github.com/mailhog/mh2/server"
 	"github.com/mailhog/mh2/server/api/backend"
 	"github.com/mailhog/mh2/server/api/handlers"
 
 	mh2http "github.com/mailhog/mh2/server/http"
-
-	// load backends
-	_ "github.com/mailhog/mh2/backend/mongodb"
 )
 
 type apiServer struct {
@@ -34,7 +30,7 @@ func NewServer() (server.Server, error) {
 		return nil, err
 	}
 
-	be, err := bk.New(apiConfig.Backend)
+	be, err := backend.New(apiConfig.Backend)
 	if err != nil {
 		return nil, err
 	}

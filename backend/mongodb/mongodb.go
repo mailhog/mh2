@@ -4,13 +4,11 @@ import (
 	"errors"
 
 	"github.com/mailhog/mh2/backend"
-	"github.com/mailhog/mh2/backend/api"
-	"github.com/mailhog/mh2/backend/smtp"
 )
 
 // b is the in-memory backend
 type b struct {
-	ch     chan api.MessageID
+	ch     chan backend.MessageID
 	exitCh chan int8
 }
 
@@ -21,7 +19,7 @@ func init() {
 // New returns a new MongoDB backend
 func New() (backend.Backend, error) {
 	instance := &b{
-		ch:     make(chan api.MessageID),
+		ch:     make(chan backend.MessageID),
 		exitCh: make(chan int8),
 	}
 
@@ -39,22 +37,8 @@ func New() (backend.Backend, error) {
 	return instance, nil
 }
 
-// MessageReceiver implements api.MessageReceiver
-func (b *b) MessageReceiver() api.MessageReceiver {
-	return b
-}
-
-// MessageStorage implements api.MessageStorage
-func (b *b) MessageStorage() api.MessageStorage {
-	return b
-}
-
-func (b *b) OutputReceiver() smtp.OutputReceiver {
-	return b
-}
-
 // Receive implements api.OutputReceiver
-func (b *b) Receive(output *smtp.Output) error {
+func (b *b) Receive(output *backend.Output) error {
 	return errors.New("not implemented")
 }
 
@@ -65,16 +49,16 @@ func (b *b) Close() error {
 }
 
 // Chan implements api.MessageReceiver
-func (b *b) Chan() chan api.MessageID {
+func (b *b) Chan() chan backend.MessageID {
 	return b.ch
 }
 
 // List implements api.MessageStorage
-func (b *b) List(start, limit int) ([]*smtp.Output, error) {
+func (b *b) List(start, limit int) ([]*backend.Output, error) {
 	return nil, errors.New("not implemented")
 }
 
 // Fetch implements api.MessageStorage
-func (b *b) Fetch(api.MessageID) (*smtp.Output, error) {
+func (b *b) Fetch(backend.MessageID) (*backend.Output, error) {
 	return nil, errors.New("not implemented")
 }

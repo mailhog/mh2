@@ -1,4 +1,4 @@
-package smtp
+package backend
 
 import (
 	"sync"
@@ -7,11 +7,7 @@ import (
 	"github.com/mailhog/data"
 )
 
-// OutputReceiver is a receiver of SMTP messages
-type OutputReceiver interface {
-	Receive(output *Output) error
-}
-
+// Output represents an SMTP conversation
 type Output struct {
 	Context       string
 	RemoteAddress string
@@ -27,6 +23,7 @@ type Output struct {
 	mutex *sync.Mutex
 }
 
+// NewOutput creates a new Output instance
 func NewOutput(context string, remoteAddress string, logData, logEvents, logProto bool) *Output {
 	return &Output{
 		Context:       context,
@@ -39,29 +36,37 @@ func NewOutput(context string, remoteAddress string, logData, logEvents, logProt
 	}
 }
 
+// DataSender represents the data origin
 type DataSender string
 
+// Client represents data sent by the client
 const Client DataSender = "CLIENT"
+
+// Server represents data sent by the server
 const Server DataSender = "SERVER"
 
+// Data represents an individual line of the SMTP conversation
 type Data struct {
 	Date   time.Time
 	Sender DataSender
 	Line   string
 }
 
+// Proto represents data from the protocol state machine
 type Proto struct {
 	Date  time.Time
 	Event string
 	Args  []interface{}
 }
 
+// Event represents an event
 type Event struct {
 	Date  time.Time
 	Event string
 	Args  []string
 }
 
+// RecordData records a line of the SMTP conversation
 func (s *Output) RecordData(sender DataSender, line string) {
 	if !s.LogData {
 		return
@@ -71,6 +76,7 @@ func (s *Output) RecordData(sender DataSender, line string) {
 	s.Data = append(s.Data, Data{time.Now(), sender, line})
 }
 
+// RecordProto records data from the protocol state machine
 func (s *Output) RecordProto(event string, args []interface{}) {
 	if !s.LogProto {
 		return
@@ -80,6 +86,7 @@ func (s *Output) RecordProto(event string, args []interface{}) {
 	s.Proto = append(s.Proto, Proto{time.Now(), event, args})
 }
 
+// RecordEvent records an event from the server
 func (s *Output) RecordEvent(event string, args []string) {
 	if !s.LogEvents {
 		return
@@ -89,6 +96,7 @@ func (s *Output) RecordEvent(event string, args []string) {
 	s.Events = append(s.Events, Event{time.Now(), event, args})
 }
 
+// RecordMessage records a message received in the SMTP conversation
 func (s *Output) RecordMessage(message *data.SMTPMessage) {
 	s.mutex.Lock()
 	s.mutex.Unlock()

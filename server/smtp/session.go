@@ -10,10 +10,9 @@ import (
 	"github.com/ian-kent/linkio"
 	"github.com/ian-kent/service.go/log"
 	"github.com/mailhog/data"
+	"github.com/mailhog/mh2/backend"
 	"github.com/mailhog/smtp"
 	"github.com/mailhog/storage"
-
-	smtpbackend "github.com/mailhog/mh2/backend/smtp"
 )
 
 type acceptSession struct {
@@ -23,7 +22,7 @@ type acceptSession struct {
 	monkey        ChaosMonkey
 
 	messageChan chan *data.SMTPMessage
-	outputChan  chan *smtpbackend.Output
+	outputChan  chan *backend.Output
 
 	logProto, logData, logEvents bool
 }
@@ -42,13 +41,13 @@ type Session struct {
 	link          *linkio.Link
 
 	messageChan chan *data.SMTPMessage
-	outputChan  chan *smtpbackend.Output
+	outputChan  chan *backend.Output
 
 	reader io.Reader
 	writer io.Writer
 	monkey ChaosMonkey
 
-	output *smtpbackend.Output
+	output *backend.Output
 }
 
 // Accept starts a new SMTP session using io.ReadWriteCloser
@@ -91,7 +90,7 @@ func (s *smtpServer) Accept(a *acceptSession) {
 		monkey:        a.monkey,
 		logData:       s.config.LogData,
 
-		output: smtpbackend.NewOutput(context, a.remoteAddress, a.logData, a.logEvents, a.logProto),
+		output: backend.NewOutput(context, a.remoteAddress, a.logData, a.logEvents, a.logProto),
 	}
 
 	proto.LogHandler = func(message string, args ...interface{}) {
@@ -209,7 +208,7 @@ func (c *Session) Read() bool {
 
 	for strings.Contains(c.line, "\r\n") {
 		line, reply := c.proto.Parse(c.line)
-		c.output.RecordData(smtpbackend.Client, c.line[:len(line)])
+		c.output.RecordData(backend.Client, c.line[:len(line)])
 		c.line = line
 
 		if reply != nil {
@@ -235,6 +234,6 @@ func (c *Session) Write(reply *smtp.Reply) {
 			log.DebugC(c.sessionID, "smtp: sent data", log.Data{"length": len(l), "data": logText})
 		}
 		c.writer.Write([]byte(l))
-		c.output.RecordData(smtpbackend.Server, l)
+		c.output.RecordData(backend.Server, l)
 	}
 }

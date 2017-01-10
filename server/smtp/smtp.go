@@ -6,15 +6,11 @@ import (
 	"sync"
 
 	"github.com/ian-kent/gofigure"
-	bk "github.com/mailhog/mh2/backend"
-	"github.com/mailhog/mh2/backend/smtp"
+	mh2backend "github.com/mailhog/mh2/backend"
 	mh2server "github.com/mailhog/mh2/server"
 	"github.com/mailhog/mh2/server/smtp/backend"
 
 	"github.com/ian-kent/service.go/log"
-
-	// load backends
-	_ "github.com/mailhog/mh2/backend/mongodb"
 )
 
 type smtpServer struct {
@@ -51,7 +47,7 @@ func NewServer() (mh2server.Server, error) {
 		jim = &Jim{smtpConfig.Jim}
 	}
 
-	be, err := bk.New(smtpConfig.Backend)
+	be, err := backend.New(smtpConfig.Backend)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +65,7 @@ func (s *smtpServer) Start() error {
 	log.Debug("smtp: starting server", log.Data{"bind_addr": s.config.BindAddr})
 
 	var wg sync.WaitGroup
-	outputChan := make(chan *smtp.Output)
+	outputChan := make(chan *mh2backend.Output)
 
 	wg.Add(1)
 	go func() {
@@ -77,7 +73,7 @@ func (s *smtpServer) Start() error {
 		for {
 			select {
 			case output := <-outputChan:
-				err := s.backend.OutputReceiver().Receive(output)
+				err := s.backend.Receive(output)
 				if err != nil {
 					if s.config.LogData {
 						log.Error(err, log.Data{

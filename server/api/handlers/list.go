@@ -32,7 +32,7 @@ func (l List) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		limit = 1
 	}
 
-	messages, err := l.API.MessageStorage().List(start, limit)
+	messages, err := l.API.List(start, limit)
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(err.Error()))

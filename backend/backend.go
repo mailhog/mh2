@@ -2,19 +2,22 @@ package backend
 
 import (
 	"fmt"
-
-	"github.com/mailhog/mh2/backend/api"
-	"github.com/mailhog/mh2/backend/smtp"
 )
+
+// MessageID represents a message ID
+type MessageID string
 
 // Backend represents a server backend
 type Backend interface {
-	api.MessageReceiver
-	api.MessageStorage
-	smtp.OutputReceiver
-	MessageReceiver() api.MessageReceiver
-	MessageStorage() api.MessageStorage
-	OutputReceiver() smtp.OutputReceiver
+	// Receive receives the output of an SMTP conversation
+	Receive(output *Output) error
+	// Chan returns a channel to send notifications to
+	Chan() chan MessageID
+	// List returns a list of messages
+	List(start, limit int) ([]*Output, error)
+	// Fetch returns a message based on message ID
+	Fetch(MessageID) (*Output, error)
+	// Close closes the backend
 	Close() error
 }
 
