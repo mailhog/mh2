@@ -13,8 +13,9 @@ type b struct {
 	ch     chan backend.MessageID
 	exitCh chan int8
 
-	mongo        *mgo.Session
-	messagesColl *mgo.Collection
+	mongo             *mgo.Session
+	conversationsColl *mgo.Collection
+	messagesColl      *mgo.Collection
 }
 
 func init() {
@@ -23,24 +24,26 @@ func init() {
 
 // New returns a new mongodb backend
 func New() (backend.Backend, error) {
-	// FIXME make host/db/coll configurable
-	host, db, coll := "localhost", "mh2", "conversations"
+	// FIXME make host/db/cColl/mColl configurable
+	host, db, cColl, mColl := "localhost", "mh2", "conversations", "messages"
 
 	mongoSession, err := mgo.Dial(host)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("connected to mongodb", log.Data{
-		"host": host,
-		"db":   db,
-		"coll": coll,
+		"host":  host,
+		"db":    db,
+		"cColl": cColl,
+		"mColl": mColl,
 	})
 
 	instance := &b{
-		ch:           make(chan backend.MessageID),
-		exitCh:       make(chan int8),
-		mongo:        mongoSession,
-		messagesColl: mongoSession.DB(db).C(coll),
+		ch:                make(chan backend.MessageID),
+		exitCh:            make(chan int8),
+		mongo:             mongoSession,
+		conversationsColl: mongoSession.DB(db).C(cColl),
+		messagesColl:      mongoSession.DB(db).C(mColl),
 	}
 
 	go func() {
@@ -59,7 +62,21 @@ func New() (backend.Backend, error) {
 
 // Receive implements api.OutputReceiver
 func (b *b) Receive(output *backend.Output) error {
-	return b.messagesColl.Insert(output)
+	err := b.conversationsColl.Insert(output)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range output.Messages {
+		// TODO parse message and store properly
+		// including a ref to the output context
+		err = b.messagesColl.Insert(m)
+		if err != nil {
+			log.ErrorC(output.Context, err, nil)
+		}
+	}
+
+	return nil
 }
 
 // Close implements api.OutputReceiver and api.MessageReceiver
