@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -17,27 +18,34 @@ func (l List) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	qStart := req.URL.Query().Get("start")
 	qLimit := req.URL.Query().Get("limit")
 
-	start, err := strconv.Atoi(qStart)
-	if err != nil {
-		w.Write([]byte(err.Error()))
-		w.WriteHeader(400)
-		return
-	}
+	start, _ := strconv.Atoi(qStart)
 
 	if start < 0 {
 		start = 0
 	}
 
-	limit, err := strconv.Atoi(qLimit)
+	limit, _ := strconv.Atoi(qLimit)
+
+	if limit > 1000 {
+		limit = 1000
+	} else if limit < 1 {
+		limit = 1
+	}
+
+	messages, err := l.API.MessageStorage().List(start, limit)
 	if err != nil {
+		w.WriteHeader(500)
 		w.Write([]byte(err.Error()))
-		w.WriteHeader(400)
 		return
 	}
 
-	if limit > 1000 {
-		limit = 0
+	b, err := json.Marshal(&messages)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
+		return
 	}
 
 	w.WriteHeader(200)
+	w.Write(b)
 }

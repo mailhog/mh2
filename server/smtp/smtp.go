@@ -1,19 +1,20 @@
 package smtp
 
 import (
-	"errors"
 	"io"
 	"net"
-	"strings"
 	"sync"
 
 	"github.com/ian-kent/gofigure"
-	"github.com/mailhog/mh2/backend/inmemory"
+	bk "github.com/mailhog/mh2/backend"
 	"github.com/mailhog/mh2/backend/smtp"
 	mh2server "github.com/mailhog/mh2/server"
 	"github.com/mailhog/mh2/server/smtp/backend"
 
 	"github.com/ian-kent/service.go/log"
+
+	// load backends
+	_ "github.com/mailhog/mh2/backend/mongodb"
 )
 
 type smtpServer struct {
@@ -30,7 +31,7 @@ func NewServer() (mh2server.Server, error) {
 		BindAddr:            "0.0.0.0:1025",
 		LogData:             false,
 		LogProto:            false,
-		Backend:             "inmemory",
+		Backend:             "mongodb",
 		RecordSessionData:   true,
 		RecordSessionEvents: true,
 		RecordSessionProto:  true,
@@ -50,28 +51,22 @@ func NewServer() (mh2server.Server, error) {
 		jim = &Jim{smtpConfig.Jim}
 	}
 
+	be, err := bk.New(smtpConfig.Backend)
+	if err != nil {
+		return nil, err
+	}
+
 	return &smtpServer{
 		config:   smtpConfig,
 		listener: listener,
 		monkey:   jim,
+		backend:  be,
 	}, nil
 }
 
 // Start starts the server
 func (s *smtpServer) Start() error {
 	log.Debug("smtp: starting server", log.Data{"bind_addr": s.config.BindAddr})
-
-	// TODO: refactor this so it's a registration/lookup not a switch statement
-	switch strings.ToLower(s.config.Backend) {
-	case "inmemory":
-		inmem, err := inmemory.New()
-		if err != nil {
-			return err
-		}
-		s.backend = inmem
-	default:
-		return errors.New("unrecognised message receiver type")
-	}
 
 	var wg sync.WaitGroup
 	outputChan := make(chan *smtp.Output)

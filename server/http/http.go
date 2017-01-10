@@ -7,6 +7,10 @@ import (
 	"time"
 
 	"github.com/gorilla/pat"
+	"github.com/ian-kent/service.go/handlers/requestID"
+	"github.com/ian-kent/service.go/handlers/timeout"
+	"github.com/ian-kent/service.go/log"
+	"github.com/justinas/alice"
 )
 
 var servers = make(map[string]Server)
@@ -24,6 +28,7 @@ type server struct {
 	*http.Server
 	started bool
 	mutex   *sync.Mutex
+	router  *pat.Router
 }
 
 // Get returns a Server
@@ -39,11 +44,19 @@ func Get(bindAddr string) Server {
 		return s
 	}
 
+	router := pat.New()
+	alice := alice.New(
+		timeout.DefaultHandler,
+		log.Handler,
+		requestID.Handler(16),
+	).Then(router)
+
 	servers[bindAddr] = &server{
-		mutex: new(sync.Mutex),
+		mutex:  new(sync.Mutex),
+		router: router,
 		Server: &http.Server{
 			Addr:         bindAddr,
-			Handler:      pat.New(),
+			Handler:      alice,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
@@ -54,7 +67,7 @@ func Get(bindAddr string) Server {
 
 // Router returns the gorilla/pat router
 func (s *server) Router() *pat.Router {
-	return s.Server.Handler.(*pat.Router)
+	return s.router
 }
 
 func (s *server) Start() error {

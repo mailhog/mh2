@@ -1,4 +1,4 @@
-package inmemory
+package mongodb
 
 import (
 	"github.com/mailhog/mh2/backend/api"
