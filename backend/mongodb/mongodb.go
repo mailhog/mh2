@@ -3,24 +3,44 @@ package mongodb
 import (
 	"errors"
 
+	"github.com/ian-kent/service.go/log"
 	"github.com/mailhog/mh2/backend"
+	"gopkg.in/mgo.v2"
 )
 
-// b is the in-memory backend
+// b is the mongodb backend
 type b struct {
 	ch     chan backend.MessageID
 	exitCh chan int8
+
+	mongo        *mgo.Session
+	messagesColl *mgo.Collection
 }
 
 func init() {
 	backend.Register("mongodb", New)
 }
 
-// New returns a new MongoDB backend
+// New returns a new mongodb backend
 func New() (backend.Backend, error) {
+	// FIXME make host/db/coll configurable
+	host, db, coll := "localhost", "mh2", "conversations"
+
+	mongoSession, err := mgo.Dial(host)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("connected to mongodb", log.Data{
+		"host": host,
+		"db":   db,
+		"coll": coll,
+	})
+
 	instance := &b{
-		ch:     make(chan backend.MessageID),
-		exitCh: make(chan int8),
+		ch:           make(chan backend.MessageID),
+		exitCh:       make(chan int8),
+		mongo:        mongoSession,
+		messagesColl: mongoSession.DB(db).C(coll),
 	}
 
 	go func() {
@@ -39,13 +59,14 @@ func New() (backend.Backend, error) {
 
 // Receive implements api.OutputReceiver
 func (b *b) Receive(output *backend.Output) error {
-	return errors.New("not implemented")
+	return b.messagesColl.Insert(output)
 }
 
 // Close implements api.OutputReceiver and api.MessageReceiver
 func (b *b) Close() error {
 	b.exitCh <- 1
-	return errors.New("not implemented")
+	b.mongo.Close()
+	return nil
 }
 
 // Chan implements api.MessageReceiver

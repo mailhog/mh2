@@ -6,7 +6,7 @@ const (
 	// Version is the version
 	Version = "2.0.0-alpha"
 	// BuildDate is the build date
-	BuildDate = "2017-01-10 21:37"
+	BuildDate = "2017-01-10 22:40"
 )
 
 // String returns a formatted version and build date string
