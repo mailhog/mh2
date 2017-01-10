@@ -1,7 +1,7 @@
 MailHog - mh2
 =============
 
-mh2 is a rewrite of MailHog - and currently a work in progress.
+mh2 is a rewrite of [MailHog](https://github.com/mailhog/MailHog) - and currently a work in progress.
 
 ### Licence
 
