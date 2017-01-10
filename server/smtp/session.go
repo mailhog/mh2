@@ -204,11 +204,11 @@ func (c *Session) Read() bool {
 		log.DebugC(c.sessionID, "smtp: received data", log.Data{"length": n, "data": logText})
 	}
 
+	c.output.RecordData(backend.Client, text)
 	c.line += text
 
 	for strings.Contains(c.line, "\r\n") {
 		line, reply := c.proto.Parse(c.line)
-		c.output.RecordData(backend.Client, c.line[:len(line)])
 		c.line = line
 
 		if reply != nil {
